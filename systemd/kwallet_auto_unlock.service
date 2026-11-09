@@ -1,0 +1,33 @@
+[Unit]
+Description=Unlock KWallet automatically using TPM credentials
+Documentation=https://github.com/Himalian/autokdewallet
+# The user bus is enough; the graphical environment is delivered later,
+# over the socket, the same way pam_kwallet_init does it.
+After=dbus.socket
+# Start before Plasma so this unit is the one that launches ksecretd.
+# SDDM autologin never gives pam_kwallet a password, so nothing else will.
+Before=graphical-session-pre.target
+Before=plasma-workspace.target
+
+[Service]
+# Type=simple, not oneshot: the script stays alive as the parent of ksecretd
+# so that this unit represents the daemon's lifetime. Type=simple is also
+# what lets Plasma publish WAYLAND_DISPLAY while the handshake is still waiting.
+Type=simple
+# `just install` copies the package and password.cred here, not the checkout.
+WorkingDirectory=%h/.autokdewallet
+ExecStart=/usr/bin/python3 -u -m autokdewallet
+
+# Override the daemon if it is not on PATH (ksecretd is tried first by default):
+# Environment=KWALLETD_BIN=/usr/bin/ksecretd
+# Set this to hand the environment over immediately instead of waiting
+# for Plasma to publish the graphical session variables:
+# Environment=AUTOKDEWALLET_NO_WAIT=1
+
+Restart=on-failure
+RestartSec=2
+StartLimitBurst=3
+TimeoutStopSec=5
+
+[Install]
+WantedBy=graphical-session-pre.target
