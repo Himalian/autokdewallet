@@ -14,8 +14,15 @@ install:
 	cp -r src/autokdewallet "$dest/autokdewallet"
 	find "$dest/autokdewallet" -type d -name __pycache__ -prune -exec rm -rf {} +
 
-	# Remove the flat layout used before the package refactor.
+	# Remove the flat layout and caches used before the package refactor.
 	rm -f "$dest/unlock.py" "$dest/calculate_hash.py" "$dest/get_salt.py"
+	rm -rf "$dest/__pycache__"
+
+	# Fail early if the installed package cannot be imported.
+	if ! (cd "$dest" && PYTHONDONTWRITEBYTECODE=1 python3 -c 'import autokdewallet'); then
+		echo "Installed package cannot be imported from $dest" >&2
+		exit 1
+	fi
 
 	if [[ -f password.cred ]]; then
 		if [[ -e "$dest/password.cred" ]]; then
@@ -81,4 +88,4 @@ test:
 
 clean:
 	find . -type d -name __pycache__ -prune -exec rm -rf {} +
-	rm -rf "${HOME}/.autokdewallet/autokdewallet/__pycache__"
+	rm -rf "${HOME}/.autokdewallet/__pycache__" "${HOME}/.autokdewallet/autokdewallet/__pycache__"
