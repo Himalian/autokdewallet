@@ -14,12 +14,12 @@ Before=plasma-workspace.target
 # so that this unit represents the daemon's lifetime. Type=simple is also
 # what lets Plasma publish WAYLAND_DISPLAY while the handshake is still waiting.
 Type=simple
-# Runtime lives in the home directory, not in the git checkout.
+# `just install` copies the package and password.cred here, not the checkout.
 WorkingDirectory=%h/.autokdewallet
-ExecStart=/usr/bin/python3 -u %h/.autokdewallet/unlock.py
+ExecStart=/usr/bin/python3 -u -m autokdewallet
 
-# This machine's secret daemon (kwallet 6.30). kwalletd6 is not the PAM target.
-Environment=KWALLETD_BIN=/usr/bin/ksecretd
+# Override the daemon if it is not on PATH (ksecretd is tried first by default):
+# Environment=KWALLETD_BIN=/usr/bin/ksecretd
 # Set this to hand the environment over immediately instead of waiting
 # for Plasma to publish the graphical session variables:
 # Environment=AUTOKDEWALLET_NO_WAIT=1

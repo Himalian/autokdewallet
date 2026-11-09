@@ -1,15 +1,22 @@
 all:
 	just -l
 
-# install runtime files into ~/.autokdewallet and the user unit
+# install the package into ~/.autokdewallet and the user unit
 install:
 	#!/usr/bin/env bash
 	set -euo pipefail
 	dest="${HOME}/.autokdewallet"
 	mkdir -p "$dest"
 	chmod 700 "$dest"
-	cp unlock.py calculate_hash.py get_salt.py "$dest/"
-	echo "Placed runtime scripts in $dest"
+
+	# Replace the installed package so stale modules cannot linger.
+	rm -rf "$dest/autokdewallet"
+	cp -r src/autokdewallet "$dest/autokdewallet"
+	find "$dest/autokdewallet" -type d -name __pycache__ -prune -exec rm -rf {} +
+
+	# Remove the flat layout used before the package refactor.
+	rm -f "$dest/unlock.py" "$dest/calculate_hash.py" "$dest/get_salt.py"
+
 	if [[ -f password.cred ]]; then
 		if [[ -e "$dest/password.cred" ]]; then
 			echo "Kept existing $dest/password.cred" >&2
@@ -20,9 +27,10 @@ install:
 		chmod 600 "$dest/password.cred"
 		echo "Moved password.cred to $dest/password.cred"
 	fi
+
 	mkdir -p "${HOME}/.config/systemd/user"
-	cp kwallet_auto_unlock.service "${HOME}/.config/systemd/user/kwallet_auto_unlock.service"
-	echo "Installed unit: ${HOME}/.config/systemd/user/kwallet_auto_unlock.service"
+	cp systemd/kwallet_auto_unlock.service "${HOME}/.config/systemd/user/kwallet_auto_unlock.service"
+	echo "Installed package in $dest and unit in ${HOME}/.config/systemd/user"
 	if [[ ! -f "$dest/password.cred" ]]; then
 		echo "Next: just generate_password 'YOUR_KWALLET_PASSWORD'"
 		echo "Then: just enable"
@@ -59,12 +67,18 @@ generate_password password="":
 run:
 	#!/usr/bin/env bash
 	set -euo pipefail
-	script="${HOME}/.autokdewallet/unlock.py"
-	if [[ ! -f "$script" ]]; then
+	dest="${HOME}/.autokdewallet"
+	if [[ ! -d "$dest/autokdewallet" ]]; then
 		echo "Runtime is not installed. Run: just install" >&2
 		exit 1
 	fi
-	exec python3 "$script"
+	cd "$dest"
+	exec python3 -u -m autokdewallet
+
+# run the unit tests
+test:
+	PYTHONPATH=src python3 -m unittest discover -s tests -v
 
 clean:
-	rm -rf __pycache__ ~/.autokdewallet/__pycache__
+	find . -type d -name __pycache__ -prune -exec rm -rf {} +
+	rm -rf "${HOME}/.autokdewallet/autokdewallet/__pycache__"

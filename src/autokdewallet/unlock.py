@@ -14,8 +14,9 @@ call. This script does what ``pam_kwallet.so`` does instead:
 ``ksecretd`` then calls ``pamOpen`` internally. The process stays alive as the
 daemon's parent so systemd can supervise it.
 
-This machine logs in through SDDM autologin, so pam_kwallet never receives a
-password and does not start the daemon. The unit has to do both steps itself.
+This targets sessions (for example SDDM autologin) where pam_kwallet never
+receives a password and does not start the daemon, so the unit has to do both
+steps itself.
 """
 
 from __future__ import annotations
@@ -29,18 +30,16 @@ import sys
 import time
 from pathlib import Path
 
-from calculate_hash import derive_kwallet_hash, get_tpm_password
-from get_salt import load_binary_salt
-
-# Must match KWALLET_PAM_KEYSIZE / PBKDF2_SHA512_KEYSIZE in kwallet 6.30.
-KEYSIZE = 56
+from .credentials import get_tpm_password
+from .hashing import KEY_SIZE as KEYSIZE, derive_kwallet_hash
+from .salt import load_binary_salt
 
 # Must match socketPrefix / envVar in pam_kwallet.c.
 SOCKET_PREFIX = "kwallet5"
 ENV_VAR = "PAM_KWALLET5_LOGIN"
 
 # ksecretd owns the wallet since the kwalletd split. kwalletd6 is only a
-# fallback for older installations. This machine has /usr/bin/ksecretd.
+# fallback for older installations.
 DAEMON_CANDIDATES = ("ksecretd", "kwalletd6", "kwalletd5")
 
 # ksecretd reads environment lines with fgets() into a 1000-byte buffer.
