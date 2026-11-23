@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 
-# PBKDF2 parameters from KWallet's src/backend/kwalletbackend.cpp:
+# PBKDF2 parameters from KWallet's src/runtime/kwalletbackend/kwalletbackend.h:
 # PBKDF2_SHA512_ITERATIONS = 50000, PBKDF2_SHA512_KEYSIZE = 56.
 ITERATIONS = 50_000
 KEY_SIZE = 56
